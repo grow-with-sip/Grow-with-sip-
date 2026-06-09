@@ -35,7 +35,8 @@
     if (!phone) {
         window.location.href = "login.html";
     } else {
-        const rechargeRef = ref(db, 'recharges');
+        // यहाँ हमने फोल्डर का नाम 'recharge_requests' कर दिया है ताकि पेमेंट पेज वाला डेटा मैच हो जाए
+        const rechargeRef = ref(db, 'recharge_requests');
         
         onValue(rechargeRef, (snapshot) => {
             listDiv.innerHTML = "";
@@ -44,9 +45,10 @@
             snapshot.forEach((childSnapshot) => {
                 let item = childSnapshot.val();
                 
-                if (item.phone === phone) {
+                // चेक करें कि क्या यह डेटा उसी यूजर का है
+                if (item.phone == phone) {
                     found = true;
-                    let statusColor = item.status === 'Success' ? 'green' : 'orange';
+                    let statusColor = item.status === 'success' ? 'green' : 'orange';
                     
                     listDiv.innerHTML += `
                         <div class="recharge-item">
@@ -54,7 +56,7 @@
                                 <strong>₹${item.amount}</strong><br>
                                 <small style="color: #666;">${item.timestamp ? new Date(item.timestamp).toLocaleString() : 'N/A'}</small>
                             </div>
-                            <div style="color: ${statusColor}; font-weight: bold;">${item.status || 'Pending'}</div>
+                            <div style="color: ${statusColor}; font-weight: bold;">${item.status || 'pending'}</div>
                         </div>
                     `;
                 }
@@ -69,4 +71,5 @@
 
 </body>
 </html>
+
 
