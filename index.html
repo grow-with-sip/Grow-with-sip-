@@ -99,6 +99,13 @@
         .detail-box b { color: #007bff; font-size: 14px; }
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 10; }
         .nav-item { text-align: center; font-size: 11px; cursor: pointer; }
+        .  // यह चेक करेगा कि क्या यूजर पहले से लॉग-इन है
+        const user = localStorage.getItem('loggedInUserId');
+        
+        // अगर यूजर लॉग-इन नहीं है, तो उसे सीधे रजिस्टर पेज पर भेज दें
+        if (!user) {
+            window.location.href = "register.html"; // अपनी रजिस्टर फाइल का नाम यहाँ रखें
+        }
     </style>
 </head>
 <body>
