@@ -24,17 +24,17 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-    const db = getDatabase(initializeApp({ 
+    const app = initializeApp({ 
         databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com" 
-    }));
+    });
 
+    const db = getDatabase(app);
     let phone = localStorage.getItem('loggedInUserId');
     let listDiv = document.getElementById('rechargeList');
 
     if (!phone) {
         window.location.href = "login.html";
     } else {
-        // 'recharges' कलेक्शन से डेटा उठाएं
         const rechargeRef = ref(db, 'recharges');
         
         onValue(rechargeRef, (snapshot) => {
@@ -44,7 +44,6 @@
             snapshot.forEach((childSnapshot) => {
                 let item = childSnapshot.val();
                 
-                // सिर्फ इस यूजर का रिचार्ज दिखाएं
                 if (item.phone === phone) {
                     found = true;
                     let statusColor = item.status === 'Success' ? 'green' : 'orange';
@@ -70,3 +69,4 @@
 
 </body>
 </html>
+
