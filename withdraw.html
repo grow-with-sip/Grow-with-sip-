@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdrawal</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .header { background: #1a237e; color: white; padding: 15px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        label { font-size: 14px; color: #555; display: block; margin-top: 15px; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .withdraw-btn { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 25px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="header"><h3>Withdrawal</h3></div>
+
+<div class="card">
+    <p>Available Balance: <strong id="user-bal">Loading...</strong></p>
+    
+    <label>Withdrawal Amount</label>
+    <input type="number" id="withdrawAmt" placeholder="Enter Amount">
+    
+    <label>Withdrawal Password (6 Digits)</label>
+    <input type="password" id="wPass" placeholder="Enter 6-digit withdrawal password">
+    
+    <label>Account Holder Name</label>
+    <input type="text" id="accName" placeholder="Enter Name">
+    
+    <label>Bank Account Number</label>
+    <input type="text" id="accNumber" placeholder="Enter Account Number">
+    
+    <label>IFSC Code</label>
+    <input type="text" id="ifscCode" placeholder="Enter IFSC Code">
+    
+    <button class="withdraw-btn" onclick="processWithdrawal()">CONFIRM WITHDRAWAL</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+    const db = getDatabase(initializeApp({ 
+        databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com" 
+    }));
+
+    const userPhone = localStorage.getItem('loggedInUserId');
+    if (!userPhone) { window.location.href = "login.html"; }
+
+    const userRef = ref(db, 'users/' + userPhone);
+    let userData = {};
+
+    onValue(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+            userData = snapshot.val();
+            document.getElementById('user-bal').innerText = "₹" + parseFloat(userData.balance || 0).toFixed(2);
+        }
+    });
+
+    window.processWithdrawal = async function() {
+        // यहाँ हमने इनपुट को Number में बदला है
+        let amount = parseFloat(document.getElementById('withdrawAmt').value);
+        let currentBalance = parseFloat(userData.balance || 0);
+        let enteredPassword = String(document.getElementById('wPass').value).trim();
+        let dbPassword = String(userData.withdrawalPassword || "").trim();
+
+        if (isNaN(amount) || amount < 100) { alert("❌ कृपया सही राशि भरें (कम से कम ₹100)!"); return; }
+        
+        // तुलना: क्या आप बैलेंस से ज्यादा निकाल रहे हैं?
+        if (amount > currentBalance) { 
+            alert("❌ पर्याप्त बैलेंस नहीं है! आपका बैलेंस ₹" + currentBalance + " है।"); 
+            return; 
+        }
+        
+        // पासवर्ड मिलान
+        if (enteredPassword !== dbPassword) {
+            alert("❌ गलत पासवर्ड!");
+            return;
+        }
+
+        try {
+            // बैलेंस घटाना
+            await update(userRef, { balance: currentBalance - amount });
+            
+            // विड्रॉल रिक्वेस्ट भेजना
+            await push(ref(db, 'withdrawals'), {
+                phone: userPhone,
+                amount: amount,
+                name: document.getElementById('accName').value,
+                acc: document.getElementById('accNumber').value,
+                ifsc: document.getElementById('ifscCode').value,
+                status: "Pending",
+                timestamp: new Date().toISOString()
+            });
+
+            alert("✅ विड्रॉल रिक्वेस्ट सफलतापूर्वक भेज दी गई है!");
+            location.reload();
+        } catch (e) {
+            alert("Error: " + e.message);
+        }
+    }
+</script>
+</body>
+</html>

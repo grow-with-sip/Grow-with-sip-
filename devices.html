@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Devices</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 20px; }
+        .header { background: #1a3a6a; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .device-card { 
+            background: white; margin: 15px; padding: 15px; border-radius: 12px; 
+            border: 1px solid #1a3a6a; display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .img-box { width: 100%; height: 150px; background: #eee; border-radius: 8px; overflow: hidden; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .title { font-weight: bold; font-size: 18px; color: #1a3a6a; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .detail-box { background: #f8f9fa; padding: 8px; border-radius: 6px; text-align: center; font-size: 12px; border: 1px solid #eee; }
+        .detail-box b { color: #007bff; display: block; font-size: 14px; }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const db = getDatabase(initializeApp({ 
+            databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com" 
+        }));
+
+        window.onload = async function() {
+            let phone = localStorage.getItem('loggedInUserId');
+            if (!phone) { window.location.href = "login.html"; return; }
+
+            const devicesRef = ref(db, 'users/' + phone + '/myDevices');
+            const snapshot = await get(devicesRef);
+            let deviceList = document.getElementById('deviceList');
+
+            if (snapshot.exists()) {
+                deviceList.innerHTML = ""; 
+                const devices = snapshot.val();
+                
+                Object.values(devices).forEach((device) => {
+                    const purchaseDate = new Date(device.purchaseDate);
+                    const today = new Date();
+                    const diffTime = Math.abs(today - purchaseDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const remainingDays = 365 - diffDays;
+                    
+                    // टोटल प्रॉफिट कैलकुलेशन (365 * dailyProfit)
+                    let totalProfit = Number(device.dailyProfit) * 365;
+
+                    deviceList.innerHTML += `
+                        <div class="device-card">
+                            <div class="img-box"><img src="${device.image}"></div>
+                            <div class="title">${device.name}</div>
+                            <div class="details-grid">
+                                <div class="detail-box">Daily Profit<br><b>₹${device.dailyProfit}</b></div>
+                                <div class="detail-box">Total Profit<br><b>₹${totalProfit}</b></div>
+                                <div class="detail-box">Remaining Days<br><b>${remainingDays > 0 ? remainingDays : 0} Days</b></div>
+                                <div class="detail-box">Purchased Date<br><b>${purchaseDate.toLocaleDateString()}</b></div>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                deviceList.innerHTML = "<p style='text-align:center; margin-top:20px;'>कोई डिवाइस नहीं है।</p>";
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="header">My Devices</div>
+    <div id="deviceList">Loading...</div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+        .header { background: #1a3a6a; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        
+        .tabs { display: flex; background: #e0e0e0; margin: 15px; border-radius: 8px; padding: 4px; }
+        .tab { flex: 1; padding: 12px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .tab.active { background: #1a3a6a; color: white; }
+        
+        .box { background: white; margin: 15px; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .balance-info { font-size: 16px; margin-bottom: 10px; color: #333; }
+        .amount-input { width: 100%; font-size: 20px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        
+        .pay-option { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; align-items: center; font-weight: bold; cursor: pointer; }
+        .pay-option.selected { border: 2px solid #e83e8c; background: #fff0f7; color: #e83e8c; }
+        
+        .pay-btn { width: 100%; padding: 16px; background: #1a3a6a; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }
+        .note { font-size: 12px; color: #666; background: #f9f9f9; padding: 10px; margin-top: 8px; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div class="header">Recharge</div>
+
+<div class="tabs">
+    <div class="tab active">💳 Recharge</div>
+    <div class="tab" onclick="window.location.href='withdraw.html'">💸 Withdraw</div>
+</div>
+
+<div class="box">
+    <div class="balance-info">Balance: ₹ <span id="disp-bal">0.00</span></div>
+    <input type="number" class="amount-input" id="amount" value="254" oninput="updateButton()">
+</div>
+
+<div class="box">
+    <div class="pay-option">Pay - H</div>
+    <div class="pay-option selected">Pay - O 🔥</div>
+    <div class="pay-option">Pay - M</div>
+</div>
+
+<button class="pay-btn" onclick="goToPayment()">Pay ₹<span id="btn-amt">254</span></button>
+
+<div class="box">
+    <div class="note">• Minimum top-up: 254 Rs.</div>
+    <div class="note">• Please pay and submit UTR within the stipulated time.</div>
+    <div class="note">• Do not save old account top-ups.</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+    const db = getDatabase(initializeApp({ 
+        databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com" 
+    }));
+
+    window.onload = function() {
+        let phone = localStorage.getItem('loggedInUserId');
+        if (!phone) { window.location.href = "login.html"; return; }
+
+        // बैलेंस को डेटाबेस से सिंक करना
+        const userRef = ref(db, 'users/' + phone);
+        onValue(userRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                let bal = data.balance ? parseFloat(data.balance) : 0;
+                document.getElementById('disp-bal').innerText = bal.toFixed(2);
+            } else {
+                document.getElementById('disp-bal').innerText = "0.00";
+            }
+        });
+    };
+
+    // पेमेंट पेज पर अमाउंट भेजना
+    window.goToPayment = function() {
+        let amount = document.getElementById('amount').value;
+        if (amount < 254) { 
+            alert('❌ Minimum top-up is 254 Rs.'); 
+            return; 
+        }
+        window.location.href = `payment.html?amount=${amount}`;
+    }
+
+    window.updateButton = function() {
+        let amt = document.getElementById('amount').value;
+        document.getElementById('btn-amt').innerText = amt;
+    }
+</script>
+
+</body>
+</html>

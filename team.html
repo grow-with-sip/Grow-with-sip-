@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Team</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZDfE59TQ6FazabHI0fjxWlzNYZZlJfZc",
+            authDomain: "my-project-f7fc8.firebaseapp.com",
+            projectId: "my-project-f7fc8",
+            storageBucket: "my-project-f7fc8.firebasestorage.app",
+            messagingSenderId: "316975609937",
+            appId: "1:316975609937:web:2fb3609843ec3c16a36070"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.db = db;
+        window.collection = collection;
+        window.query = query;
+        window.where = where;
+        window.getDocs = getDocs;
+    </script>
+
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; }
+        .header { background: #1a3a6a; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .summary { background: white; margin: 15px; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; border: 1px solid #ddd; }
+        .tabs { display: flex; margin: 0 15px; background: #d0dceb; border-radius: 8px; padding: 4px; }
+        .tab { flex: 1; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .active { background: white; color: #1a3a6a; }
+        .card { background: white; margin: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #1a3a6a; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="header">My Team</div>
+
+    <div class="summary">
+        <div><small>Total Comm.</small><br><b id="totalComm">₹0</b></div>
+        <div><small>Team Size</small><br><b id="teamSize">0</b></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab1" onclick="loadTeam(1)">L1 (20%)</div>
+        <div class="tab" id="tab2" onclick="loadTeam(2)">L2 (2%)</div>
+    </div>
+
+    <div id="teamList">Loading...</div>
+
+<script type="module">
+    window.loadTeam = async function(level) {
+        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === level - 1));
+        const phone = localStorage.getItem('loggedInUserId');
+        const container = document.getElementById('teamList');
+        container.innerHTML = "Loading...";
+
+        try {
+            // L1 मेंबर्स ढूंढें (referredBy == my phone)
+            const q = window.query(window.collection(window.db, "users"), window.where("referredBy", "==", phone));
+            const querySnapshot = await window.getDocs(q);
+            
+            if (level === 1) {
+                let members = querySnapshot.docs.map(doc => doc.data());
+                renderList(members);
+            } else if (level === 2) {
+                // L2 के लिए पहले L1 की लिस्ट लें, फिर उनके रेफर किए हुए लोग ढूंढें
+                let l1Phones = querySnapshot.docs.map(doc => doc.id);
+                let l2Members = [];
+                for(let p of l1Phones) {
+                    const q2 = window.query(window.collection(window.db, "users"), window.where("referredBy", "==", p));
+                    const snap2 = await window.getDocs(q2);
+                    snap2.docs.forEach(d => l2Members.push(d.data()));
+                }
+                renderList(l2Members);
+            }
+        } catch (e) { container.innerHTML = "Error loading team."; }
+    }
+
+    function renderList(members) {
+        let container = document.getElementById('teamList');
+        document.getElementById('teamSize').innerText = members.length;
+        container.innerHTML = members.length === 0 ? "<p style='text-align:center;'>No members found.</p>" : "";
+        members.forEach(m => {
+            container.innerHTML += `<div class="card"><div><b>User ID:</b> ${m.mobile}</div></div>`;
+        });
+    }
+
+    window.onload = () => loadTeam(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, get, update, increment, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        // Realtime Database Connection
+        const db = getDatabase(initializeApp({ 
+            databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com" 
+        }));
+
+        async function checkAndAddProfit() {
+            const phone = localStorage.getItem('loggedInUserId');
+            if (!phone) return;
+            const userRef = ref(db, 'users/' + phone);
+            const snapshot = await get(userRef);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const today = new Date().toDateString();
+                // अगर आज प्रॉफिट नहीं मिला है और डिवाइस हैं
+                if (data.lastProfitDate !== today && data.myDevices) {
+                    let totalDailyProfit = 0;
+                    Object.values(data.myDevices).forEach(device => { totalDailyProfit += Number(device.dailyProfit); });
+                    
+                    if (totalDailyProfit > 0) {
+                        await update(userRef, { 
+                            balance: increment(totalDailyProfit), 
+                            lastProfitDate: today 
+                        });
+                    }
+                }
+            }
+        }
+
+        window.onload = function() {
+            if (!localStorage.getItem('loggedInUserId')) window.location.href = "login.html";
+            else checkAndAddProfit();
+        };
+
+        window.buyPlan = async function(planName, planPrice, profitAmount, imageSrc) {
+            const phone = localStorage.getItem('loggedInUserId');
+            const userRef = ref(db, 'users/' + phone);
+            const snapshot = await get(userRef);
+            
+            if (snapshot.exists()) {
+                const userData = snapshot.val();
+                const currentBalance = Number(userData.balance || 0);
+                
+                if (currentBalance >= planPrice) {
+                    // बैलेंस अपडेट करें
+                    await update(userRef, {
+                        balance: currentBalance - planPrice
+                    });
+                    
+                    // डिवाइस जोड़ें
+                    const devicesRef = ref(db, 'users/' + phone + '/myDevices');
+                    await push(devicesRef, { 
+                        name: planName, 
+                        dailyProfit: profitAmount, 
+                        image: imageSrc, 
+                        purchaseDate: new Date().toISOString() 
+                    });
+                    
+                     // 3. इनकम हिस्ट्री में एंट्री डालें
+                await push(ref(db, 'users/' + phone + '/incomeHistory'), {
+                    name: planName + " Purchase",
+                    amount: -planPrice,
+                    date: new Date().toLocaleDateString()
+                });
+                
+                    alert("✅ Plan Purchased Successfully!");
+                    window.location.href = 'my_profile.html';
+                } else {
+                    alert("❌ बैलेंस कम है! वर्तमान बैलेंस: ₹" + currentBalance);
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; padding-bottom: 80px; }
+        .banner-container { width: 100%; overflow: hidden; }
+        .banner-container img { width: 100%; height: auto; display: block; }
+        .menu-bar { display: flex; justify-content: space-around; background: white; padding: 15px; margin-bottom: 10px; border-bottom: 1px solid #ddd; }
+        .menu-item { text-align: center; font-size: 12px; cursor: pointer; flex: 1; }
+        .plan-card { background: white; margin: 10px 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .plan-image-container { width: 100%; display: flex; justify-content: center; background-color: white; padding-top: 10px; }
+        .plan-image { max-width: 90%; height: auto; max-height: 150px; display: block; }
+        .plan-content { padding: 15px; }
+        .plan-title { font-weight: bold; font-size: 17px; margin-bottom: 10px; color: #1a3a6a; }
+        .buy-btn { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .pre-sale-btn { width: 100%; padding: 12px; background: #aab2b9; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: not-allowed; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .detail-box { background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; font-size: 13px; border: 1px solid #eee; }
+        .detail-box b { color: #007bff; font-size: 14px; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 10; }
+        .nav-item { text-align: center; font-size: 11px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="banner-container"><img src="https://i.ibb.co/hxpVVpkY/sip-banner-1.png" alt="SIP Banner"></div>
+<div class="menu-bar">
+    <div class="menu-item" onclick="window.location.href='recharge.html'">💳<br>Recharge</div>
+    <div class="menu-item" onclick="window.location.href='withdraw.html'">💰<br>Withdraw</div>
+    <div class="menu-item">🎧<br>Online</div>
+    <div class="menu-item" onclick="window.open('https://web.telegram.org/k/#+yfQSnd_23o81MzNl', '_blank')">✈️<br>Channel</div>
+</div>
+
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/Xfr8c2tb/1.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">Small Cap Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹499</b></div><div class="detail-box">Daily Profit<br><b>₹74</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹27,320</b></div></div><button class="buy-btn" onclick="buyPlan('Small Cap Fund', 499, 74, 'https://i.ibb.co/Xfr8c2tb/1.png')">Buy Now</button></div></div>
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/5X7pcspB/4.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">Mid Cap Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹2499</b></div><div class="detail-box">Daily Profit<br><b>₹374</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹1,36,820</b></div></div><button class="buy-btn" onclick="buyPlan('Mid Cap Fund', 2499, 374, 'https://i.ibb.co/5X7pcspB/4.png')">Buy Now</button></div></div>
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/G4hZbq6n/2.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">International Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹4999</b></div><div class="detail-box">Daily Profit<br><b>₹749</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹2,73,695</b></div></div><button class="buy-btn" onclick="buyPlan('International Fund', 4999, 749, 'https://i.ibb.co/G4hZbq6n/2.png')">Buy Now</button></div></div>
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/S7N4q9xB/5.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">Flexi Cap Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹9999</b></div><div class="detail-box">Daily Profit<br><b>₹1500</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹5,47,500</b></div></div><button class="pre-sale-btn" disabled>Pre-sale</button></div></div>
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/kg9gm7Jq/3.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">New Premium MAXX Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹19999</b></div><div class="detail-box">Daily Profit<br><b>₹3200</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹11,68,000</b></div></div><button class="pre-sale-btn" disabled>Pre-sale</button></div></div>
+<div class="plan-card"><div class="plan-image-container"><img src="https://i.ibb.co/kg9gm7Jq/3.png" class="plan-image"></div><div class="plan-content"><div class="plan-title">Additional Special Fund</div><div class="details-grid"><div class="detail-box">Price<br><b>₹29999</b></div><div class="detail-box">Daily Profit<br><b>₹5000</b></div><div class="detail-box">Days<br><b>365 Days</b></div><div class="detail-box">Total Profit<br><b>₹18,25,000</b></div></div><button class="pre-sale-btn" disabled>Pre-sale</button></div></div>
+
+<div class="bottom-nav">
+    <div class="nav-item">📋<br>Plan</div>
+    <div class="nav-item" onclick="window.location.href='share.html'">👥<br>Share</div>
+    <div class="nav-item" onclick="window.location.href='team.html'">📈<br>Team</div>
+    <div class="nav-item" onclick="window.location.href='my_profile.html'">👤<br>My</div>
+</div>
+</body>
+</html>

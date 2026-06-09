@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; background-color: #f0eefc; margin: 0; padding: 10px; }
+        .header { background: #6f42c1; color: white; padding: 20px; text-align: center; border-radius: 0 0 20px 20px; }
+        .box { background: white; padding: 20px; border-radius: 15px; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; position: relative; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; color: #888; }
+        .tab.active { color: #6f42c1; }
+        #active-line { position: absolute; bottom: -2px; left: 0; width: 50%; height: 3px; background-color: #6f42c1; transition: 0.3s; }
+        .upi-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .upi-btn { flex: 1; padding: 12px; text-align: center; border: 1px solid #ddd; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; color: #333; display: block; }
+        .input-box { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .submit-btn { width: 100%; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h3>Payment Amount: ₹<span id="display-amount">...</span></h3>
+    <p>Time Remaining: <span id="timer">04:00</span></p>
+</div>
+
+<div class="box">
+    <div class="tabs" id="tab-container">
+        <div class="tab active" id="tab1" onclick="showSection('direct')">Direct Transfer</div>
+        <div class="tab" id="tab2" onclick="showSection('qr')">Scan QRCode</div>
+        <div id="active-line"></div>
+    </div>
+
+    <div id="direct-section">
+        <p><strong>Select Payment Method:</strong></p>
+        <div class="upi-container">
+            <a id="paytm-link" class="upi-btn">Paytm</a>
+            <a id="phonepe-link" class="upi-btn">PhonePe</a>
+        </div>
+        <p>Transfer to following UPI:</p>
+        <div style="background:#f4f4f4; padding:10px; border-radius:8px; margin-bottom:15px;"><strong>79832550@naviaxis</strong></div>
+        <input type="text" id="utr-direct" class="input-box" placeholder="UTR(UPI Ref.ID)">
+        <button class="submit-btn" id="btn-submit1" onclick="verify('utr-direct')">Submit</button>
+    </div>
+
+    <div id="qr-section" style="display:none;">
+        <p><strong>Select Payment Method:</strong></p>
+        <div class="upi-container">
+            <a id="paytm-qr" class="upi-btn">Paytm</a>
+            <a id="phonepe-qr" class="upi-btn">PhonePe</a>
+        </div>
+        <center>
+            <img id="dynamic-qr" src="" width="180" style="margin-bottom:15px; border:1px solid #eee;">
+        </center>
+        <input type="text" id="utr-qr" class="input-box" placeholder="Payment successful enter UTR">
+        <button class="submit-btn" id="btn-submit2" onclick="verify('utr-qr')">Submit</button>
+    </div>
+</div>
+
+<script>
+    // QR लोड करें (यह आपका पुराना वाला फायरबेस लिंक है)
+    fetch('https://my-qr-codes-ef3d6-default-rtdb.firebaseio.com/.json')
+    .then(res => res.json()).then(data => { if (data) document.getElementById('dynamic-qr').src = data; });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const amount = parseFloat(urlParams.get('amount')) || 254;
+    document.getElementById('display-amount').innerText = amount;
+
+    let upiId = "79832550@naviaxis";
+    document.getElementById('paytm-link').href = document.getElementById('paytm-qr').href = `paytmmp://pay?pa=${upiId}&pn=GrowWithSIP&am=${amount}&cu=INR`;
+    document.getElementById('phonepe-link').href = document.getElementById('phonepe-qr').href = `phonepe://pay?pa=${upiId}&pn=GrowWithSIP&am=${amount}&cu=INR`;
+
+    function showSection(type) {
+        const line = document.getElementById('active-line');
+        if(type === 'direct') {
+            document.getElementById('direct-section').style.display = "block";
+            document.getElementById('qr-section').style.display = "none";
+            line.style.left = "0%";
+            document.getElementById('tab1').classList.add('active');
+            document.getElementById('tab2').classList.remove('active');
+        } else {
+            document.getElementById('direct-section').style.display = "none";
+            document.getElementById('qr-section').style.display = "block";
+            line.style.left = "50%";
+            document.getElementById('tab2').classList.add('active');
+            document.getElementById('tab1').classList.remove('active');
+        }
+    }
+
+    let timeLeft = 240;
+    setInterval(() => {
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
+        document.getElementById('timer').innerText = `0${m}:${s < 10 ? '0' : ''}${s}`;
+        if(timeLeft > 0) timeLeft--;
+    }, 1000);
+
+    function verify(inputId) {
+        let utr = document.getElementById(inputId).value;
+        if(utr.length < 10) { alert("कृपया सही UTR नंबर डालें।"); return; }
+        
+        let btn = document.getElementById(inputId === 'utr-direct' ? 'btn-submit1' : 'btn-submit2');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        let phone = localStorage.getItem('loggedInUserId');
+        fetch('https://grow-with-sip-recharge-default-rtdb.firebaseio.com/recharge_requests.json', {
+            method: 'POST', 
+            body: JSON.stringify({ phone: phone, amount: amount, utr: utr, status: "pending", timestamp: new Date().toISOString() })
+        }).then(() => {
+            alert("✅ पेमेंट सबमिट हो गया है!");
+            window.location.href = 'my_profile.html';
+        }).catch(() => { alert("डेटाबेस एरर!"); btn.disabled = false; btn.innerText = "Submit"; });
+    }
+</script>
+</body>
+</html>

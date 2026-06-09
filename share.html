@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Invitation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; padding-bottom: 80px; }
+        .header { background: #0a192f; color: white; padding: 20px; text-align: center; }
+        .qr-section { background: white; margin: 20px; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #qrcode { display: inline-block; padding: 10px; border: 2px solid #eee; }
+        .section-title { margin: 20px; font-weight: bold; color: #333; }
+        .info-card { background: white; margin: 10px 20px; padding: 15px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #ddd; }
+        .copy-btn { background: #0a192f; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .share-btn { background: #25D366; color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; margin: 10px 20px; font-weight: bold; cursor: pointer; }
+        .rewards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px; }
+        .reward-box { background: white; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #ddd; }
+        .footer-msg { background: #e8f0fe; margin: 20px; padding: 15px; border-radius: 8px; text-align: center; font-size: 14px; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="header"><h3>Share</h3></div>
+
+<div class="qr-section">
+    <h4>Invitation Program</h4>
+    <p>Earn money easily from home, stable income</p>
+    <div id="qrcode"></div>
+</div>
+
+<div class="section-title">Share invitation link</div>
+
+<div class="info-card">
+    <div><strong>Invitation link</strong><br><small id="userLink" style="word-break: break-all;"></small></div>
+    <button class="copy-btn" onclick="copyText('userLink')">Copy</button>
+</div>
+
+<button class="share-btn" onclick="shareOnWhatsApp()">Share on WhatsApp</button>
+
+<div class="info-card">
+    <div><strong>Invitation Code</strong><br><strong id="userCode"></strong></div>
+    <button class="copy-btn" onclick="copyText('userCode')">Copy</button>
+</div>
+
+<div class="section-title">Referral Rewards</div>
+<div class="rewards-grid">
+    <div class="reward-box">Level 1<br><strong>20%</strong></div>
+    <div class="reward-box">Level 2<br><strong>2%</strong></div>
+    <div class="reward-box">Level 3<br><strong>1%</strong></div>
+</div>
+
+<div class="footer-msg">
+    Share the invitation link to major social platforms to build a team and get up to 23% commission.
+</div>
+
+<script>
+    let loggedInId = localStorage.getItem('loggedInUserId');
+    
+    if (!loggedInId) {
+        window.location.href = "login.html";
+    } else {
+        // यहाँ अपना डोमेन लिंक डालें (जैसे: https://yourwebsite.github.io/register.html)
+        let domain = "https://your-app-domain.com"; 
+        let dynamicLink = domain + "/register.html?ref=" + loggedInId;
+        
+        document.getElementById('userLink').innerText = dynamicLink;
+        document.getElementById('userCode').innerText = loggedInId;
+
+        new QRCode(document.getElementById("qrcode"), {
+            text: dynamicLink,
+            width: 160,
+            height: 160,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }
+
+    function copyText(id) {
+        let text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text);
+        alert("Copied to clipboard!");
+    }
+
+    function shareOnWhatsApp() {
+        let link = document.getElementById('userLink').innerText;
+        let message = "Join me on Biviman Miner and start earning! Register here: " + link;
+        window.open("https://wa.me/?text=" + encodeURIComponent(message), "_blank");
+    }
+</script>
+
+</body>
+</html>

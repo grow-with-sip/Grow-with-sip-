@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Personal Information</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const app = initializeApp({
+            databaseURL: "https://grow-with-sip-recharge-default-rtdb.firebaseio.com"
+        });
+
+        window.db = getDatabase(app);
+        window.ref = ref;
+        window.get = get;
+        window.update = update;
+    </script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .box { background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 5px; color: white; margin-top: 10px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h3>Login Password</h3>
+    <input type="password" id="oldLogin" placeholder="Current Login Password">
+    <input type="password" id="newLogin" placeholder="New Login Password">
+    <button onclick="changeLoginPass()" style="background: #004a99;">Update Login Password</button>
+</div>
+
+<div class="box">
+    <h3>Withdrawal Password</h3>
+    <input type="password" id="oldWithdraw" placeholder="Current Withdrawal Password">
+    <input type="password" id="newWithdraw" placeholder="New Withdrawal Password">
+    <button onclick="changeWithdrawPass()" style="background: #e67e22;">Update Withdrawal Password</button>
+</div>
+
+<script>
+    const userPhone = localStorage.getItem('loggedInUserId');
+
+    async function changeLoginPass() {
+        if(!userPhone) { alert("Please login first!"); return; }
+        let oldPass = document.getElementById('oldLogin').value;
+        let newPass = document.getElementById('newLogin').value;
+        
+        const userRef = window.ref(window.db, 'users/' + userPhone);
+        const snapshot = await window.get(userRef);
+        
+        if (snapshot.exists() && snapshot.val().password === oldPass) {
+            await window.update(userRef, { password: newPass });
+            alert("✅ Login password updated!");
+        } else {
+            alert("❌ Current password incorrect!");
+        }
+    }
+
+    async function changeWithdrawPass() {
+        if(!userPhone) { alert("Please login first!"); return; }
+        let oldPass = document.getElementById('oldWithdraw').value;
+        let newPass = document.getElementById('newWithdraw').value;
+        
+        const userRef = window.ref(window.db, 'users/' + userPhone);
+        const snapshot = await window.get(userRef);
+        
+        if (snapshot.exists() && snapshot.val().withdrawalPassword === oldPass) {
+            await window.update(userRef, { withdrawalPassword: newPass });
+            alert("✅ Withdrawal password updated!");
+        } else {
+            alert("❌ Current withdrawal password incorrect!");
+        }
+    }
+</script>
+
+</body>
+</html>
