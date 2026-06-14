@@ -59,7 +59,14 @@
 <script>
     // QR लोड करें (यह आपका पुराना वाला फायरबेस लिंक है)
     fetch('https://my-qr-codes-ef3d6-default-rtdb.firebaseio.com/.json')
-    .then(res => res.json()).then(data => { if (data) document.getElementById('dynamic-qr').src = data; });
+.then(res => res.json())
+.then(data => { 
+    // Yahan hum database se 'photo_url' naam ki key utha rahe hain
+    if (data && data.photo_url) { 
+        document.getElementById('dynamic-qr').src = data.photo_url; 
+    } 
+});
+    
 
     const urlParams = new URLSearchParams(window.location.search);
     const amount = parseFloat(urlParams.get('amount')) || 254;
